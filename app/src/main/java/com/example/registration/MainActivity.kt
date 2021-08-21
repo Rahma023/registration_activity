@@ -3,60 +3,108 @@ package com.example.registration
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.View
 import android.widget.*
+import com.example.registration.Api.ApiClient
+import com.example.registration.Api.ApiInterface
+import com.example.registration.databinding.ActivityMainBinding
+import com.example.registration.models.RegistrationResponse
+import com.example.registration.models.RegistrationRequest
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class MainActivity : AppCompatActivity() {
-    lateinit var etNameLbl: EditText
-    lateinit var etDobLbl: EditText
-    lateinit var etIdLbl: EditText
-    lateinit var etPhoneLbl: TextView
-    lateinit var etEmailLbl: EditText
-    lateinit var btnbutton: Button
-    lateinit var spnationality:Spinner
+    lateinit var binding:ActivityMainBinding
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-        setView()
+        binding=ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        setupSpinner()
         clickRegister()
     }
-fun setView() {
-    etNameLbl = findViewById(R.id.etName)
-    etDobLbl = findViewById(R.id.etDobLbl)
-    etIdLbl = findViewById(R.id.etIdLbl)
-    etPhoneLbl = findViewById(R.id.etPhoneLbl)
-    etEmailLbl = findViewById(R.id.etEmailLbl)
-    btnbutton = findViewById(R.id.btnbutton)
-    spnationality=findViewById(R.id.spnationality)
-    var nationalities= arrayOf("Select Nationality","Kenyan","Rwandan","South Sudaneese","Ugandan")
-    var nationalityAdapter=ArrayAdapter(baseContext,android.R.layout.simple_spinner_item,nationalities)
-    nationalityAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-    spnationality.adapter=nationalityAdapter
+    fun setupSpinner(){
+        var nationality= arrayOf("Select Nationality","Kenyan","Ugandan","Rwandesee","Other")
+        var nationalitiesAdapter= ArrayAdapter(baseContext,android.R.layout.simple_spinner_item,nationality)
+        nationalitiesAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spnnationality.adapter=nationalitiesAdapter
 
-}
+    }
+
     fun clickRegister(){
-        btnbutton.setOnClickListener {
-            var name=etNameLbl.text.toString()
-            var dob=etDobLbl.text.toString()
-            var idNo=etIdLbl.text.toString()
-            var nationality=spnationality.selectedItem.toString()
-            var phone=etPhoneLbl.text.toString()
-            var email=etEmailLbl.text.toString()
-            var student=Student(name,dob, idNo, nationality, phone, email )
-            Toast.makeText(baseContext, student.toString(), Toast.LENGTH_LONG).show()
-            val intent=Intent(baseContext, Courses2Activity::class.java)
+        binding.btnRegister.setOnClickListener {
+            var intent =Intent(baseContext,LoginActivity::class.java)
             startActivity(intent)
-
         }
-}}
-data class Student(
-    var name: String,
-    var dob: String,
-    var idNo: String,
-    var nationality: String,
-    var phoneNumber: String,
-    var email: String
+        var error = false
+        binding.btnNext.setOnClickListener {
+            var name = binding.etname.text.toString()
+            if (name.isEmpty()){
+                error= true
+                binding.etname.setError("This field is required")
+            }
+            var dob = binding.etDOB.text.toString()
+            if (dob.isEmpty()){
+                error=true
+                binding.etDOB.setError("this field is required")
+            }
+            var email=binding.etEmail.text.toString()
+            if (email.isEmpty()){
+                error=true
+                binding.etEmail.setError("this field is required")
+            }
+            var phoneNumber=binding.etPhone.text.toString()
+            if (phoneNumber.isEmpty()){
+                error=true
+                binding.etPhone.setError("this field is required")
+            }
+            var password =binding.etPassword.text.toString()
+            if (password.isEmpty()){
+                error=true
+                binding.etPassword.setError("This field is required")
+            }
+            var nation =binding.spnnationality.selectedItem.toString()
+            if (nation.isEmpty()){
+                error=true
+            }
+            if (!error){
+                binding.pbRegistration.visibility=View.VISIBLE
+                var lrqRequest = RegistrationRequest(
+                    name=name,
+                    phoneNumber=phoneNumber,
+                    email=email,
+                    dateOfBirth = dob,
+                    password = password,
+                    nationality = nation
 
-)
 
+                )
+                var retrofit =ApiClient.buildApiClient(ApiInterface::class.java)
+                var request= retrofit.registerStudent(lrqRequest)
+                request.enqueue(object : Callback<RegistartionResponse?> {
+                    override fun onResponse(
+                        call: Call<RegistartionResponse?>,
+                        response: Response<RegistartionResponse?>
+                    ) {
+                        binding.pbRegistration.visibility=View.GONE
+                        if (response.isSuccessful){
+                            Toast.makeText(baseContext,"Registration is succesful",Toast.LENGTH_LONG).show()
+                        }else{
+                            Toast.makeText(baseContext,response.errorBody()?.string(),Toast.LENGTH_LONG).show()
+                        }
+                    }
+
+                    override fun onFailure(call: Call<RegistartionResponse?>, t: Throwable) {
+                        binding.pbRegistration.visibility=View.GONE
+                        Toast.makeText(baseContext,t.message,Toast.LENGTH_LONG).show()
+
+                    }
+                })
+
+            }
+        }
+    }
+}
